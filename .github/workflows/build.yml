@@ -1,0 +1,49 @@
+name: Build SmartVoiceLock APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: تحميل ملفات المشروع
+        uses: actions/checkout@v4
+
+      - name: إعداد Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: إعداد Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: بناء APK
+        run: |
+          if [ -f gradlew ]; then
+            chmod +x gradlew
+            ./gradlew assembleDebug
+          elif [ -f SmartVoiceLock_Android_Project_Ready.zip ]; then
+            unzip -q SmartVoiceLock_Android_Project_Ready.zip -d project
+            cd project
+            find . -name gradlew -type f | head
+            GRADLEW=$(find . -name gradlew -type f | head -1)
+            test -n "$GRADLEW"
+            chmod +x "$GRADLEW"
+            cd "$(dirname "$GRADLEW")"
+            ./gradlew assembleDebug
+          else
+            echo "لم يتم العثور على ملفات بناء المشروع"
+            exit 1
+          fi
+
+      - name: حفظ ملف APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartVoiceLock-APK
+          path: |
+            **/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
